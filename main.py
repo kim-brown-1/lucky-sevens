@@ -170,7 +170,7 @@ def jackpot():
 
 
 def free_rolls():
-    num_rolls = random.randrange(1, max_free_rolls)
+    num_rolls = random.randrange(2, max_free_rolls)
     slow_type("YOU'VE WON " + str(num_rolls) + " FREE ROLLS!")
     input("Any key to start")
     for i in range(num_rolls):
