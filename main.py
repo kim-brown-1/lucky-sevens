@@ -174,16 +174,18 @@ def free_rolls():
     slow_type("YOU'VE WON " + str(num_rolls) + " FREE ROLLS!")
     input("Any key to start")
     for i in range(num_rolls):
-        roll()
+        roll(True)
 
 
-def roll():
+def roll(is_free: bool):
     global balance
     global dollar_sign_amt
 
-    if balance - bet <= 0:
-        get_bet()
-        return
+    if not is_free:
+        if balance - bet <= 0:
+            get_bet()
+            return
+        balance -= bet
 
     print()
     r1 = symbols[random.randrange(len(symbols))]
@@ -193,7 +195,7 @@ def roll():
     r3 = symbols[random.randrange(len(symbols))]
     print_symbol(r3)
     print()
-    balance -= bet
+
     if r1 == r2 == r3 == "7":
         jackpot()
     if r1 == r2 == r3 == "-":
@@ -223,7 +225,7 @@ def show_menu():
         return
 
     if choice == 1:
-        roll()
+        roll(False)
     elif choice == 2:
         get_bet()
     elif choice == 3:
@@ -240,7 +242,21 @@ def get_balance():
     try:
         balance = int(starting_str)
     except ValueError:
-        print("Invalid starting balance, please enter an integer.\n")
+        print("Invalid starting balance, please enter an integer.")
+        get_balance()
+        return
+    except MemoryError:  # extremely large string entered
+        print("Invalid starting balance, please try again.")
+        get_balance()
+        return
+
+    if balance < 0:
+        print("A negative starting balance is not possible, please try again.")
+        get_balance()
+        return
+
+    if balance > 1000000:
+        print("Balance above max threshold (1,000,000). Please enter a smaller amount.")
         get_balance()
         return
 
@@ -266,13 +282,6 @@ def main():
             show_menu()
     except KeyboardInterrupt:
         exit()
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
