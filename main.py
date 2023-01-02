@@ -7,15 +7,16 @@ balance = 0.0
 bet = 0
 multiplier = 0
 menu_spaces = 5
-symbols = ["7", "*", "$"]
+symbols = ["7", "-", "$"]
 typing_sleep = 0.04
 roll_sleep = 1
 jackpot_amt = 1000
 dollar_sign_amt = 0
 winners = []
+max_free_rolls = 10
 
-# use tuples for easy indexing (when listing/
-# first item is bet amt in $USD, second is multiplier
+# use tuples instead of map for simple menu selection indexing
+# (bet amt USD, winnings multiplier)
 betToMultiplier = [
     (5, 1.0),
     (10, 1.2),
@@ -79,15 +80,12 @@ def get_money_string(amt: float):
 
 
 def slow_type(text: str):
-    try:
-        for char in text:
-            sys.stdout.write(char)
-            sys.stdout.flush()
-            time.sleep(typing_sleep)
-        sys.stdout.write('\n')
+    for char in text:
+        sys.stdout.write(char)
         sys.stdout.flush()
-    except KeyboardInterrupt:
-        exit()
+        time.sleep(typing_sleep)
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def get_bet():
@@ -109,23 +107,24 @@ def get_bet():
             break
         to_print += str(i + 1) + "] " + str(betToMultiplier[i][0]) + " " * menu_spaces
 
-    try:
-        bet_str = input(to_print + "\n")
-    except KeyboardInterrupt:
-        return
+    bet_str = input(to_print + "\n")
 
     try:
         choice = int(bet_str)
-        if choice < 1 or choice > len(betToMultiplier):
-            # TODO: fix bug here when choices are abbreviated because of balance
-            print("Invalid bet, please enter an integer 1-", len(betToMultiplier), "\n")
-            return
-        bet = betToMultiplier[choice - 1][0]
-        multiplier = betToMultiplier[choice - 1][1]
-        dollar_sign_amt = bet // 4
     except ValueError:
         print("Invalid bet, please enter an integer 1-", len(betToMultiplier), "\n")
+        get_bet()
         return
+
+    if choice < 1 or choice > len(betToMultiplier):
+        # TODO: fix bug here when choices are abbreviated because of balance
+        print("Invalid bet, please enter an integer 1-", len(betToMultiplier), "\n")
+        get_bet()
+        return
+
+    bet = betToMultiplier[choice - 1][0]
+    multiplier = betToMultiplier[choice - 1][1]
+    dollar_sign_amt = bet // 4
 
 
 def print_status():
@@ -137,13 +136,10 @@ def print_status():
 def cash_out():
     if balance > initial_balance:
         slow_type("Congrats, you've won! You ended up making " + get_money_string(balance - initial_balance) + "!")
-        try:
-            username = input("Enter your username to boast about your earnings to everyone:\n")
-            if username != "":
-                username = username.replace(",", "")
-                save_winner(username, balance - initial_balance)
-        except KeyboardInterrupt:
-            exit()
+        username = input("Enter your username to boast about your earnings to everyone:\n")
+        if username != "":
+            username = username.replace(",", "")
+            save_winner(username, balance - initial_balance)
 
         slow_type("Now go put it back into another machine :)")
         exit()
@@ -173,6 +169,14 @@ def jackpot():
     balance += won
 
 
+def free_rolls():
+    num_rolls = random.randrange(1, max_free_rolls)
+    slow_type("YOU'VE WON " + str(num_rolls) + " FREE ROLLS!")
+    input("Any key to start")
+    for i in range(num_rolls):
+        roll()
+
+
 def roll():
     global balance
     global dollar_sign_amt
@@ -192,6 +196,8 @@ def roll():
     balance -= bet
     if r1 == r2 == r3 == "7":
         jackpot()
+    if r1 == r2 == r3 == "-":
+        free_rolls()
 
     # TODO: make more sophisticated / realistic
     money_sign_won = 0.0
@@ -204,69 +210,69 @@ def roll():
 
 
 def show_menu():
-    print()
-    print()
-    print()
+    print("\n\n\n")
     print_status()
     to_print = "1] Roll" + " " * menu_spaces + "2] Change bet" + " " * menu_spaces + "3] Cash out\n"
-    try:
-        choice_str = input(to_print)
-    except KeyboardInterrupt:
-        exit()
+    choice_str = input(to_print)
 
     try:
         choice = int(choice_str)
-        if choice == 1:
-            roll()
-        elif choice == 2:
-            get_bet()
-        elif choice == 3:
-            cash_out()
-        else:
-            print("Invalid selection, please enter an integer 1-3.\n")
-            show_menu()
-            return
     except ValueError:
         print("Invalid selection, please enter an integer 1-3.\n")
-    return
+        show_menu()
+        return
+
+    if choice == 1:
+        roll()
+    elif choice == 2:
+        get_bet()
+    elif choice == 3:
+        cash_out()
+    else:
+        print("Invalid selection, please enter an integer 1-3.\n")
+        show_menu()
+
+
+def get_balance():
+    global balance
+    global initial_balance
+    starting_str = input("Enter your starting balance (in USD):\n")
+    try:
+        balance = int(starting_str)
+    except ValueError:
+        print("Invalid starting balance, please enter an integer.\n")
+        get_balance()
+        return
+
+    initial_balance = balance
 
 
 def main():
-    global initial_balance
-    global balance
-
-    # TODO: consider making board 9x9
-    random.seed()
     try:
+        random.seed()
         skip = input("Skip intro? Y/N\n")
         show_intro = not (skip == "Y" or skip == "y")
+        if show_intro:
+            slow_type("Welcome to lucky sevens! Take your time and be careful - if you run out of money, game over.")
+            slow_type("If you cash out with net gain, then congrats, you've won!")
+            slow_type("The rules are pretty simple- if you get three symbols in a row - jackpot!")
+            slow_type("Cash symbols are also pretty good.")
+            slow_type("Good luck! :)")
+
+        populate_and_print_winners()
+        get_balance()
+        get_bet()
+        while True:
+            show_menu()
     except KeyboardInterrupt:
         exit()
 
-    if show_intro:
-        slow_type("Welcome to lucky sevens! Take your time and be careful - if you run out of money, game over.")
-        slow_type("If you cash out with net gain, then congrats, you've won!")
-        slow_type("The rules are pretty simple- if you get three symbols in a row - jackpot!")
-        slow_type("Cash symbols are also pretty good.")
-        slow_type("Good luck! :)")
 
-    populate_and_print_winners()
 
-    try:
-        starting_str = input("Enter your starting balance (in USD):\n")
-    except KeyboardInterrupt:
-        exit()
 
-    try:
-        balance = int(starting_str)
-        initial_balance = balance
-    except ValueError:
-        print("Invalid starting balance, please enter an integer.\n")
-        return
 
-    get_bet()
-    while True:
-        show_menu()
+
+
 
 
 if __name__ == '__main__':
