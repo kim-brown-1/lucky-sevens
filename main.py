@@ -7,11 +7,12 @@ balance = 0.0
 bet = 0
 multiplier = 0
 menu_spaces = 5
-symbols = ["7", "*", "$", "#"]
+symbols = ["7", "*", "$"]
 typing_sleep = 0.04
 roll_sleep = 1
 jackpot_amt = 1000
 dollar_sign_amt = 0
+winners = []
 
 # use tuples for easy indexing (when listing/
 # first item is bet amt in $USD, second is multiplier
@@ -24,8 +25,57 @@ betToMultiplier = [
 ]
 
 
-def get_money_string(s: float):
-    return f'${s:.2f}'
+def save_winner(username: str, profit: float):
+    # winners are only the top 10, in descending order
+    changed = False
+    for i in range(len(winners)):
+        if profit > winners[i][1]:
+            winners.insert(i, (username, profit))
+            if len(winners) > 10:
+                winners.pop()
+            changed = True
+            break
+
+    if not changed and len(winners) < 10:
+        # append onto end
+        winners.append((username, profit))
+        changed = True
+
+    if changed:
+        to_write = ""
+        for winner in winners:
+            to_write += winner[0] + "," + str(winner[1]) + "\n"
+
+        f = open("winners.txt", "w")
+        f.write(to_write)
+        f.close()
+
+
+def populate_and_print_winners():
+    global winners
+
+    f = open("winners.txt", "r")
+    for line in f:
+        split_line = line.split(",")
+        user = split_line[0]
+        amt_string = split_line[1]
+        try:
+            amt = float(amt_string)
+            winners.append((user, amt))
+        except ValueError:
+            continue
+
+    if len(winners) > 0:
+        slow_type("Here are some previous winners' earnings:")
+        for winner in winners:
+            sys.stdout.write(winner[0] + ": " + get_money_string(winner[1]) + "\n")
+            sys.stdout.flush()
+
+        print("\n")
+
+
+def get_money_string(amt: float):
+    return f'${amt:.2f}'
 
 
 def slow_type(text: str):
@@ -90,11 +140,8 @@ def cash_out():
         try:
             username = input("Enter your username to boast about your earnings to everyone:\n")
             if username != "":
-                # TODO: only store top 10, in sorted order
                 username = username.replace(",", "")
-                f = open("winners.txt", "a")
-                f.write(username + "," + get_money_string(balance - initial_balance))
-                f.close()
+                save_winner(username, balance - initial_balance)
         except KeyboardInterrupt:
             exit()
 
@@ -202,6 +249,8 @@ def main():
         slow_type("The rules are pretty simple- if you get three symbols in a row - jackpot!")
         slow_type("Cash symbols are also pretty good.")
         slow_type("Good luck! :)")
+
+    populate_and_print_winners()
 
     try:
         starting_str = input("Enter your starting balance (in USD):\n")
