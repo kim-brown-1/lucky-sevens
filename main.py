@@ -1,9 +1,7 @@
-# This is a sample Python script.
 import random
 import sys
 import time
 
-# Press ⌃R to execute it or replace it with your code.
 initial_balance = 0.0
 balance = 0.0
 bet = 0
@@ -26,7 +24,7 @@ betToMultiplier = [
 ]
 
 
-def get_money_string(s: str):
+def get_money_string(s: float):
     return f'${s:.2f}'
 
 
@@ -89,6 +87,17 @@ def print_status():
 def cash_out():
     if balance > initial_balance:
         slow_type("Congrats, you've won! You ended up making " + get_money_string(balance - initial_balance) + "!")
+        try:
+            username = input("Enter your username to boast about your earnings to everyone:\n")
+            if username != "":
+                # TODO: only store top 10, in sorted order
+                username = username.replace(",", "")
+                f = open("winners.txt", "a")
+                f.write(username + "," + get_money_string(balance - initial_balance))
+                f.close()
+        except KeyboardInterrupt:
+            exit()
+
         slow_type("Now go put it back into another machine :)")
         exit()
     elif balance == initial_balance:
