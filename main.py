@@ -14,6 +14,8 @@ jackpot_amt = 1000
 dollar_sign_amt = 0
 winners = []
 max_free_rolls = 10
+machine_width = 14
+machine_height = 4
 
 # use tuples instead of map for simple menu selection indexing
 # (bet amt USD, winnings multiplier)
@@ -124,7 +126,7 @@ def get_bet():
 
     bet = betToMultiplier[choice - 1][0]
     multiplier = betToMultiplier[choice - 1][1]
-    dollar_sign_amt = bet // 4
+    dollar_sign_amt = 0.4 * bet
 
 
 def print_status():
@@ -187,13 +189,20 @@ def roll(is_free: bool):
             return
         balance -= bet
 
-    print()
+    print('-' * machine_width)
+    print("|" + " " * (machine_width - 1) + "|")
+    print('-' * machine_width)
+    print("\\ ", end="")
     r1 = symbols[random.randrange(len(symbols))]
-    print_symbol(r1)
+    print_symbol(r1+" \\")
     r2 = symbols[random.randrange(len(symbols))]
-    print_symbol(r2)
+    print_symbol(r2+" \\")
     r3 = symbols[random.randrange(len(symbols))]
-    print_symbol(r3)
+    print_symbol(r3 + " \\\n")
+    print('-' * machine_width)
+    for i in range(machine_height):
+        print("|" + " " * machine_width + "|")
+    print("  " + '-' * machine_width)
     print()
 
     if r1 == r2 == r3 == "7":
@@ -207,15 +216,17 @@ def roll(is_free: bool):
         if symbol == "$":
             money_sign_won += dollar_sign_amt
     if money_sign_won != 0.0:
-        print("Congrats, you won ", get_money_string(money_sign_won), " from the '$' symbol!")
+        print("+", get_money_string(money_sign_won))
     balance += money_sign_won
 
 
 def show_menu():
-    print("\n\n\n")
+    print()
     print_status()
     to_print = "1] Roll" + " " * menu_spaces + "2] Change bet" + " " * menu_spaces + "3] Cash out\n"
     choice_str = input(to_print)
+    if choice_str == "":
+        choice_str = "1"  # treat enter as roll
 
     try:
         choice = int(choice_str)
@@ -250,8 +261,8 @@ def get_balance():
         get_balance()
         return
 
-    if balance < 0:
-        print("A negative starting balance is not possible, please try again.")
+    if balance < betToMultiplier[0][0]:
+        print("Please enter a starting balance above " + str(betToMultiplier[0][0]) + ".")
         get_balance()
         return
 
